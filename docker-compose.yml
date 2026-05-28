@@ -1,0 +1,164 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-db
+    restart: always
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-springbootpostgressecurity}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis-cache
+    restart: always
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis_data:/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    restart: always
+
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+
+    ports:
+      - "5050:80"
+
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      CLICKHOUSE_DB: demo
+      CLICKHOUSE_USER: admin
+      CLICKHOUSE_PASSWORD: admin
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_STACK_VERSION:-8.13.4}
+    container_name: elasticsearch
+    restart: always
+
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+    ports:
+      - "9200:9200"
+
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${ELASTIC_STACK_VERSION:-8.13.4}
+    container_name: logstash
+    restart: always
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    environment:
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+
+    ports:
+      - "5044:5044"
+
+    volumes:
+      - ./src/main/resources/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${ELASTIC_STACK_VERSION:-8.13.4}
+    container_name: kibana
+    restart: always
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+
+    ports:
+      - "5601:5601"
+
+  app:
+    build: .
+    container_name: spring-boot-app
+    restart: always
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      clickhouse:
+        condition: service_started
+      logstash:
+        condition: service_started
+
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/springbootpostgressecurity}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      SPRING_DATASOURCE_POSTGRES_URL: ${SPRING_DATASOURCE_POSTGRES_URL:-jdbc:postgresql://postgres:5432/springbootpostgressecurity}
+      SPRING_DATASOURCE_POSTGRES_USERNAME: ${SPRING_DATASOURCE_POSTGRES_USERNAME:-postgres}
+      SPRING_DATASOURCE_POSTGRES_PASSWORD: ${SPRING_DATASOURCE_POSTGRES_PASSWORD:-postgres}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      LOGSTASH_HOST: logstash
+      LOGSTASH_PORT: 5044
+
+      APP_DATASOURCE_CLICKHOUSE_URL: jdbc:clickhouse://clickhouse:8123/demo?compress=0
+      APP_DATASOURCE_CLICKHOUSE_USERNAME: admin
+      APP_DATASOURCE_CLICKHOUSE_PASSWORD: admin
+
+      SPRING_JPA_PROPERTIES_HIBERNATE_JDBC_LOB_NON_CONTEXTUAL_CREATION: "true"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+
+      BEZKODER_APP_JWTSECRET: ${JWT_SECRET:-ZGV2ZWxvcG1lbnQtand0LXNlY3JldC1jaGFuZ2UtbWU=}
+      BEZKODER_APP_JWTEXPIRATIONMS: 86400000
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  redis_data:
+  elasticsearch_data:
