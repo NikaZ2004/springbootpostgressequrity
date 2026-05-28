@@ -66,7 +66,10 @@ services:
 
     environment:
       discovery.type: single-node
-      xpack.security.enabled: "false"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      xpack.security.transport.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-elastic123456}
       ES_JAVA_OPTS: "-Xms512m -Xmx512m"
 
     ports:
@@ -76,10 +79,37 @@ services:
       - elasticsearch_data:/usr/share/elasticsearch/data
 
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS -u elastic:$${ELASTIC_PASSWORD} 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s' || exit 1"]
       interval: 10s
       timeout: 10s
       retries: 12
+
+  elastic-setup:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_STACK_VERSION:-8.13.4}
+    container_name: elastic-setup
+    restart: "no"
+
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD:-elastic123456}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-kibana_system123456}
+      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD:-logstash_internal123456}
+
+    command: >
+      bash -c '
+        set -e;
+        until curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" "http://elasticsearch:9200/_cluster/health" > /dev/null; do
+          echo "Waiting for Elasticsearch credentials";
+          sleep 5;
+        done;
+        curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" -H "Content-Type: application/json" -X POST "http://elasticsearch:9200/_security/user/kibana_system/_password" -d "{\"password\":\"$${KIBANA_SYSTEM_PASSWORD}\"}";
+        curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" -H "Content-Type: application/json" -X PUT "http://elasticsearch:9200/_security/role/logstash_writer" -d "{\"cluster\":[\"monitor\",\"manage_index_templates\"],\"indices\":[{\"names\":[\"application-logs*\"],\"privileges\":[\"create_index\",\"create\",\"write\",\"view_index_metadata\"]}]}";
+        curl -fsS -u "elastic:$${ELASTIC_PASSWORD}" -H "Content-Type: application/json" -X POST "http://elasticsearch:9200/_security/user/logstash_internal" -d "{\"password\":\"$${LOGSTASH_INTERNAL_PASSWORD}\",\"roles\":[\"logstash_writer\"],\"full_name\":\"Internal Logstash User\"}";
+        echo "Elastic users and roles configured";
+      '
 
   logstash:
     image: docker.elastic.co/logstash/logstash:${ELASTIC_STACK_VERSION:-8.13.4}
@@ -87,11 +117,14 @@ services:
     restart: always
 
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      elastic-setup:
+        condition: service_completed_successfully
 
     environment:
       LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+      XPACK_MONITORING_ENABLED: "false"
+      ELASTICSEARCH_USERNAME: logstash_internal
+      ELASTICSEARCH_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD:-logstash_internal123456}
 
     ports:
       - "5044:5044"
@@ -105,11 +138,16 @@ services:
     restart: always
 
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      elastic-setup:
+        condition: service_completed_successfully
 
     environment:
       ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD:-kibana_system123456}
+      XPACK_SECURITY_ENCRYPTIONKEY: ${KIBANA_SECURITY_ENCRYPTION_KEY:-devsecurityencryptionkey1234567890}
+      XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY: ${KIBANA_ENCRYPTEDSAVEDOBJECTS_ENCRYPTION_KEY:-devencryptedsavedobjectskey1234567890}
+      XPACK_REPORTING_ENCRYPTIONKEY: ${KIBANA_REPORTING_ENCRYPTION_KEY:-devreportingencryptionkey1234567890}
 
     ports:
       - "5601:5601"

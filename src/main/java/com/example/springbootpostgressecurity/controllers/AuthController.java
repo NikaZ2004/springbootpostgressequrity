@@ -7,7 +7,8 @@ import java.util.stream.Collectors;
 
 import jakarta.validation.Valid;
 
-import lombok.extern.log4j.Log4j2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -36,10 +37,13 @@ import com.example.springbootpostgressecurity.repository.UserRepository;
 import com.example.springbootpostgressecurity.security.jwt.JwtUtils;
 import com.example.springbootpostgressecurity.security.services.UserDetailsImpl;
 import com.example.springbootpostgressecurity.services.UserService;
-@Log4j2
+
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
 public class AuthController {
+
+  private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
   @Autowired
   AuthenticationManager authenticationManager;
 
@@ -72,7 +76,7 @@ public class AuthController {
     UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
     List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
         .collect(Collectors.toList());
-      log.info("user login {} roles {}", userDetails.getUsername(), roles);
+    log.info("user login {} roles {}", userDetails.getUsername(), roles);
     return ResponseEntity
         .ok(new JwtResponse(jwt, userDetails.getId(), userDetails.getUsername(), userDetails.getEmail(), roles));
   }
