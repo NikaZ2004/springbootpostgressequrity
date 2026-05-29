@@ -12,6 +12,8 @@ import com.example.springbootpostgressecurity.payload.response.UserGameStatusRes
 import com.example.springbootpostgressecurity.repository.UserGameGroupByStatus;
 import com.example.springbootpostgressecurity.repository.UserRepository;
 import com.example.springbootpostgressecurity.repository.UserGameRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
@@ -29,6 +31,8 @@ import java.time.Instant;
 
 @Service
 public class UserGameService {
+    private static final Logger log = LoggerFactory.getLogger(UserGameService.class);
+
     private final UserGameRepository userGameRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -154,7 +158,10 @@ public class UserGameService {
                 .emailVerified(request.getEmailVerified() != null && request.getEmailVerified())
                 .build();
 
-        return UserGameResponse.from(userGameRepository.save(userGame));
+        UserGame savedUserGame = userGameRepository.save(userGame);
+        log.info("userGame saved id {} email {} role {} status {}", savedUserGame.getId(), savedUserGame.getEmail(),
+                savedUserGame.getRole(), savedUserGame.getStatus());
+        return UserGameResponse.from(savedUserGame);
     }
     @CachePut(value = "usergame", key = "#id")
     public UserGameResponse update(Long id, UserGameRequest request) {
@@ -180,7 +187,10 @@ public class UserGameService {
             userGame.setEmailVerified(request.getEmailVerified());
         }
 
-        return UserGameResponse.from(userGameRepository.save(userGame));
+        UserGame savedUserGame = userGameRepository.save(userGame);
+        log.info("userGame updated id {} email {} role {} status {}", savedUserGame.getId(), savedUserGame.getEmail(),
+                savedUserGame.getRole(), savedUserGame.getStatus());
+        return UserGameResponse.from(savedUserGame);
     }
 
     @Caching(evict = {
@@ -205,6 +215,8 @@ public class UserGameService {
 
         profile.setGameRoles(new HashSet<>(roles));
         userGameRepository.save(userGame);
+        log.info("userGame roles updated userId {} userGameId {} roles {}", userId, userGame.getId(),
+                profile.getGameRoles());
 
         return new GameRolesResponse(profile.getGameRoles());
     }
@@ -213,6 +225,7 @@ public class UserGameService {
     public void delete(Long id) {
         UserGame userGame = getById(id);
         userGameRepository.delete(userGame);
+        log.info("userGame deleted id {} email {}", userGame.getId(), userGame.getEmail());
     }
 
     private UserGame getById(Long id) {

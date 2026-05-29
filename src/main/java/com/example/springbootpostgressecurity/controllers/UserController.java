@@ -8,7 +8,8 @@ import com.example.springbootpostgressecurity.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import lombok.extern.log4j.Log4j2;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +26,8 @@ import java.util.List;
 @RequestMapping("/api/users")
 @Tag(name = "User", description = "Operations for application users")
 public class UserController {
+  private static final Logger log = LoggerFactory.getLogger(UserController.class);
+
   private final UserService userService;
 
   public UserController(UserService userService) {
@@ -35,21 +38,27 @@ public class UserController {
   @GetMapping
   @Operation(summary = "Get all users")
   public List<UserInfoResponse> findAll() {
-    return userService.findAll();
+    List<UserInfoResponse> users = userService.findAll();
+    log.info("users findAll count {}", users.size());
+    return users;
   }
 
   @PreAuthorize("isAuthenticated()")
   @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get user by id")
   public UserInfoResponse findById(@PathVariable Long id) {
-    return userService.findById(id);
+    UserInfoResponse user = userService.findById(id);
+    log.info("user findById id {} username {}", id, user.getUsername());
+    return user;
   }
 
   @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
   @GetMapping("/function/by-username")
   @Operation(summary = "Get user by username using PostgreSQL function")
   public UserInfoResponse findByUsernameUsingFunction(@RequestParam String username) {
-    return userService.findByUsernameUsingFunction(username);
+    UserInfoResponse user = userService.findByUsernameUsingFunction(username);
+    log.info("user findByUsernameUsingFunction username {} id {}", username, user.getId());
+    return user;
   }
 
   @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
@@ -57,7 +66,9 @@ public class UserController {
   @Operation(summary = "Get user role overview using PostgreSQL function")
   public List<UserRoleOverviewResponse> findRoleOverviewUsingFunction(
       @RequestParam(required = false, defaultValue = "0") Integer minRoleCount) {
-    return userService.findRoleOverviewUsingFunction(minRoleCount);
+    List<UserRoleOverviewResponse> overview = userService.findRoleOverviewUsingFunction(minRoleCount);
+    log.info("user roleOverview function minRoleCount {} count {}", minRoleCount, overview.size());
+    return overview;
   }
 
   @PreAuthorize("hasRole('MODERATOR') or hasRole('ADMIN')")
@@ -65,7 +76,9 @@ public class UserController {
   @Operation(summary = "Get user role overview using PostgreSQL view")
   public List<UserRoleOverviewResponse> findRoleOverviewUsingView(
       @RequestParam(required = false, defaultValue = "0") Integer minRoleCount) {
-    return userService.findRoleOverviewUsingView(minRoleCount);
+    List<UserRoleOverviewResponse> overview = userService.findRoleOverviewUsingView(minRoleCount);
+    log.info("user roleOverview view minRoleCount {} count {}", minRoleCount, overview.size());
+    return overview;
   }
 
   @PreAuthorize("hasRole('ADMIN')")
@@ -74,7 +87,9 @@ public class UserController {
   public UserInfoResponse updateNameUsingProcedure(
       @PathVariable Long id,
       @Valid @RequestBody UpdateUserNameRequest request) {
-    return userService.updateNameUsingProcedure(id, request.getName());
+    UserInfoResponse user = userService.updateNameUsingProcedure(id, request.getName());
+    log.info("user updateName id {} username {}", id, user.getUsername());
+    return user;
   }
 
   @PreAuthorize("hasRole('ADMIN')")
@@ -83,6 +98,8 @@ public class UserController {
   public UserInfoResponse grantRoleUsingProcedure(
       @PathVariable Long id,
       @Valid @RequestBody GrantUserRoleRequest request) {
-    return userService.grantRoleUsingProcedure(id, request.getRoleName());
+    UserInfoResponse user = userService.grantRoleUsingProcedure(id, request.getRoleName());
+    log.info("user grantRole id {} role {}", id, request.getRoleName());
+    return user;
   }
 }

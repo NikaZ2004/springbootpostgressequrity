@@ -1,6 +1,8 @@
 package com.example.springbootpostgressecurity.security;
 
 import jakarta.servlet.DispatcherType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +30,8 @@ import com.example.springbootpostgressecurity.security.services.UserDetailsServi
 // jsr250Enabled = true,
 // prePostEnabled = true) // by default
 public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
+  private static final Logger log = LoggerFactory.getLogger(WebSecurityConfig.class);
+
   @Autowired
   UserDetailsServiceImpl userDetailsService;
 
@@ -36,6 +40,7 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
 
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
+    log.info("JWT authentication filter configured");
     return new AuthTokenFilter();
   }
 
@@ -50,6 +55,7 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
 
       authProvider.setPasswordEncoder(passwordEncoder());
 
+      log.info("DAO authentication provider configured");
       return authProvider;
   }
 
@@ -104,6 +110,7 @@ public class WebSecurityConfig { // extends WebSecurityConfigurerAdapter {
 
     http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
+    log.info("security filter chain configured");
     return http.build();
   }
 }

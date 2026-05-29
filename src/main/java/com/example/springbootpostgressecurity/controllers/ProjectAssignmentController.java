@@ -8,6 +8,8 @@ import com.example.springbootpostgressecurity.services.ProjectAssignmentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +31,8 @@ import java.util.List;
 @RequestMapping("/api/project-assignments")
 @Tag(name = "Project Assignment", description = "CRUD operations and JPQL examples for project assignments")
 public class ProjectAssignmentController {
+    private static final Logger log = LoggerFactory.getLogger(ProjectAssignmentController.class);
+
     private final ProjectAssignmentService projectAssignmentService;
 
     public ProjectAssignmentController(ProjectAssignmentService projectAssignmentService) {
@@ -39,49 +43,63 @@ public class ProjectAssignmentController {
     @GetMapping
     @Operation(summary = "Get all project assignments")
     public List<ProjectAssignmentResponse> findAll() {
-        return projectAssignmentService.findAll();
+        List<ProjectAssignmentResponse> assignments = projectAssignmentService.findAll();
+        log.info("projectAssignments findAll count {}", assignments.size());
+        return assignments;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id:\\d+}")
     @Operation(summary = "Get project assignment by id")
     public ProjectAssignmentResponse findById(@PathVariable Integer id) {
-        return projectAssignmentService.findById(id);
+        ProjectAssignmentResponse assignment = projectAssignmentService.findById(id);
+        log.info("projectAssignment findById id {}", id);
+        return assignment;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/by-employee")
     @Operation(summary = "Get project assignments by employee id")
     public List<ProjectAssignmentResponse> findByEmployeeId(@RequestParam Integer employeeId) {
-        return projectAssignmentService.findByEmployeeId(employeeId);
+        List<ProjectAssignmentResponse> assignments = projectAssignmentService.findByEmployeeId(employeeId);
+        log.info("projectAssignments findByEmployeeId employeeId {} count {}", employeeId, assignments.size());
+        return assignments;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/by-project")
     @Operation(summary = "Get project assignments by project id")
     public List<ProjectAssignmentResponse> findByProjectId(@RequestParam Integer projectId) {
-        return projectAssignmentService.findByProjectId(projectId);
+        List<ProjectAssignmentResponse> assignments = projectAssignmentService.findByProjectId(projectId);
+        log.info("projectAssignments findByProjectId projectId {} count {}", projectId, assignments.size());
+        return assignments;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/jpql/join-details")
     @Operation(summary = "Get assignment details using JPQL join")
     public List<ProjectAssignmentDetailsResponse> findAssignmentDetailsJoin() {
-        return projectAssignmentService.findAssignmentDetailsJoin();
+        List<ProjectAssignmentDetailsResponse> assignments = projectAssignmentService.findAssignmentDetailsJoin();
+        log.info("projectAssignments joinDetails count {}", assignments.size());
+        return assignments;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/jpql/group-by-project")
     @Operation(summary = "Get assignment counts and hours grouped by project using JPQL group by")
     public List<ProjectAssignmentProjectSummaryResponse> groupAssignmentsByProject() {
-        return projectAssignmentService.groupAssignmentsByProject();
+        List<ProjectAssignmentProjectSummaryResponse> assignments = projectAssignmentService.groupAssignmentsByProject();
+        log.info("projectAssignments groupByProject count {}", assignments.size());
+        return assignments;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Create project assignment")
     public ResponseEntity<ProjectAssignmentResponse> create(@Valid @RequestBody ProjectAssignmentRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(projectAssignmentService.create(request));
+        ProjectAssignmentResponse assignment = projectAssignmentService.create(request);
+        log.info("projectAssignment create id {}", assignment.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(assignment);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -90,7 +108,9 @@ public class ProjectAssignmentController {
     public ProjectAssignmentResponse update(
             @PathVariable Integer id,
             @Valid @RequestBody ProjectAssignmentRequest request) {
-        return projectAssignmentService.update(id, request);
+        ProjectAssignmentResponse assignment = projectAssignmentService.update(id, request);
+        log.info("projectAssignment update id {}", id);
+        return assignment;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -98,6 +118,7 @@ public class ProjectAssignmentController {
     @Operation(summary = "Delete project assignment")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         projectAssignmentService.delete(id);
+        log.info("projectAssignment delete id {}", id);
         return ResponseEntity.noContent().build();
     }
 }

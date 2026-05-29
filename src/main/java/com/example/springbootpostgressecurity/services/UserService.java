@@ -37,6 +37,7 @@ public class UserService {
   public List<UserInfoResponse> findAll() {
     Object cachedUsers = redisTemplate.opsForValue().get(USERS_KEY);
     if (cachedUsers instanceof List<?> users && users.stream().allMatch(UserInfoResponse.class::isInstance)) {
+      log.info("users cache hit key {} count {}", USERS_KEY, users.size());
       return users.stream()
           .map(UserInfoResponse.class::cast)
           .toList();
@@ -46,6 +47,7 @@ public class UserService {
         .map(this::toResponse)
         .toList();
     redisTemplate.opsForValue().set(USERS_KEY, users, USER_CACHE_TTL);
+    log.info("users loaded from repository count {}", users.size());
     return users;
   }
 
@@ -54,6 +56,7 @@ public class UserService {
     String key = userByIdKey(id);
     Object cachedUser = redisTemplate.opsForValue().get(key);
     if (cachedUser instanceof UserInfoResponse user) {
+      log.info("user cache hit id {} username {}", id, user.getUsername());
       return user;
     }
 
@@ -61,6 +64,7 @@ public class UserService {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     UserInfoResponse response = toResponse(user);
     cacheUser(response);
+    log.info("user loaded by id {} username {}", id, response.getUsername());
     return response;
   }
 
@@ -69,6 +73,7 @@ public class UserService {
     String key = userByUsernameKey(username);
     Object cachedUser = redisTemplate.opsForValue().get(key);
     if (cachedUser instanceof UserInfoResponse user) {
+      log.info("user cache hit username {} id {}", username, user.getId());
       return user;
     }
 
@@ -76,6 +81,7 @@ public class UserService {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     UserInfoResponse response = toResponse(user);
     cacheUser(response);
+    log.info("user loaded by username {} id {}", username, response.getId());
     return response;
   }
 
@@ -85,6 +91,7 @@ public class UserService {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     UserInfoResponse response = toResponse(user);
     cacheUser(response);
+    log.info("user loaded by username function {} id {}", username, response.getId());
     return response;
   }
 
@@ -92,18 +99,22 @@ public class UserService {
   public List<UserRoleOverviewResponse> findRoleOverviewUsingFunction(Integer minRoleCount) {
     int normalizedMinRoleCount = normalizeMinRoleCount(minRoleCount);
 
-    return userRepository.findUserRoleOverviewFunction(normalizedMinRoleCount).stream()
+    List<UserRoleOverviewResponse> users = userRepository.findUserRoleOverviewFunction(normalizedMinRoleCount).stream()
         .map(this::toRoleOverviewResponse)
         .toList();
+    log.info("user roleOverview function minRoleCount {} count {}", normalizedMinRoleCount, users.size());
+    return users;
   }
 
   @Transactional(readOnly = true)
   public List<UserRoleOverviewResponse> findRoleOverviewUsingView(Integer minRoleCount) {
     int normalizedMinRoleCount = normalizeMinRoleCount(minRoleCount);
 
-    return userRepository.findUserRoleOverviewView(normalizedMinRoleCount).stream()
+    List<UserRoleOverviewResponse> users = userRepository.findUserRoleOverviewView(normalizedMinRoleCount).stream()
         .map(this::toRoleOverviewResponse)
         .toList();
+    log.info("user roleOverview view minRoleCount {} count {}", normalizedMinRoleCount, users.size());
+    return users;
   }
 
   @Transactional
@@ -117,6 +128,7 @@ public class UserService {
     response.setName(name);
     evictUser(user);
     cacheUser(response);
+    log.info("user name updated id {} username {}", id, response.getUsername());
     return response;
   }
 
@@ -133,6 +145,7 @@ public class UserService {
     UserInfoResponse response = toResponse(user);
     evictUser(user);
     cacheUser(response);
+    log.info("user role granted id {} role {}", id, roleName);
     return response;
   }
 
@@ -140,6 +153,7 @@ public class UserService {
   public User save(User user) {
     User savedUser = userRepository.save(user);
     evictUser(savedUser);
+    log.info("user saved id {} username {}", savedUser.getId(), savedUser.getUsername());
     return savedUser;
   }
 
@@ -149,6 +163,7 @@ public class UserService {
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     userRepository.delete(user);
     evictUser(user);
+    log.info("user deleted id {} username {}", user.getId(), user.getUsername());
   }
 
   public void evictUser(User user) {
@@ -156,6 +171,7 @@ public class UserService {
       redisTemplate.delete(USERS_KEY);
       redisTemplate.delete(userByIdKey(user.getId()));
       redisTemplate.delete(userByUsernameKey(user.getUsername()));
+      log.info("user cache evicted id {} username {}", user.getId(), user.getUsername());
     } catch (RuntimeException ex) {
       log.warn("Failed to evict user cache", ex);
     }
@@ -164,6 +180,7 @@ public class UserService {
   private void cacheUser(UserInfoResponse user) {
     redisTemplate.opsForValue().set(userByIdKey(user.getId()), user, USER_CACHE_TTL);
     redisTemplate.opsForValue().set(userByUsernameKey(user.getUsername()), user, USER_CACHE_TTL);
+    log.info("user cached id {} username {}", user.getId(), user.getUsername());
   }
 
   private UserRoleOverviewResponse toRoleOverviewResponse(UserRoleOverviewProjection projection) {

@@ -1,6 +1,8 @@
 package com.example.springbootpostgressecurity.config.datasource;
 
 import jakarta.persistence.EntityManagerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
@@ -22,6 +24,7 @@ import javax.sql.DataSource;
         transactionManagerRef = "postgresTransactionManager"
 )
 public class PostgresDataSourceConfig {
+    private static final Logger log = LoggerFactory.getLogger(PostgresDataSourceConfig.class);
 
     @Primary
     @Bean
@@ -35,6 +38,7 @@ public class PostgresDataSourceConfig {
     public DataSource postgresDataSource(
             @Qualifier("postgresDataSourceProperties") DataSourceProperties properties
     ) {
+        log.info("postgresDataSource configured");
         return properties.initializeDataSourceBuilder().build();
     }
 
@@ -44,6 +48,7 @@ public class PostgresDataSourceConfig {
             EntityManagerFactoryBuilder builder,
             @Qualifier("postgresDataSource") DataSource dataSource
     ) {
+        log.info("postgresEntityManagerFactory configured");
         return builder
                 .dataSource(dataSource)
                 .packages("com.example.springbootpostgressecurity.models")
@@ -56,6 +61,7 @@ public class PostgresDataSourceConfig {
     public PlatformTransactionManager postgresTransactionManager(
             @Qualifier("postgresEntityManagerFactory") EntityManagerFactory entityManagerFactory
     ) {
+        log.info("postgresTransactionManager configured");
         return new JpaTransactionManager(entityManagerFactory);
     }
 }

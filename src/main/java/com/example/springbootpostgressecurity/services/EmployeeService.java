@@ -9,6 +9,8 @@ import com.example.springbootpostgressecurity.payload.response.EmployeeSalaryWin
 import com.example.springbootpostgressecurity.repository.DepartmentRepository;
 import com.example.springbootpostgressecurity.repository.EmployeeRepository;
 import com.example.springbootpostgressecurity.repository.ProjectAssignmentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,8 @@ import java.util.List;
 
 @Service
 public class EmployeeService {
+    private static final Logger log = LoggerFactory.getLogger(EmployeeService.class);
+
     private final EmployeeRepository employeeRepository;
     private final DepartmentRepository departmentRepository;
     private final ProjectAssignmentRepository projectAssignmentRepository;
@@ -86,7 +90,9 @@ public class EmployeeService {
         employee.setDepartment(resolveDepartment(request.getDepartmentId()));
         employee.setSalary(request.getSalary());
 
-        return EmployeeResponse.from(employeeRepository.save(employee));
+        Employee savedEmployee = employeeRepository.save(employee);
+        log.info("employee saved id {} departmentId {}", savedEmployee.getId(), request.getDepartmentId());
+        return EmployeeResponse.from(savedEmployee);
     }
 
     @Transactional
@@ -97,7 +103,9 @@ public class EmployeeService {
         employee.setDepartment(resolveDepartment(request.getDepartmentId()));
         employee.setSalary(request.getSalary());
 
-        return EmployeeResponse.from(employeeRepository.save(employee));
+        Employee savedEmployee = employeeRepository.save(employee);
+        log.info("employee updated id {} departmentId {}", savedEmployee.getId(), request.getDepartmentId());
+        return EmployeeResponse.from(savedEmployee);
     }
 
     @Transactional
@@ -109,6 +117,7 @@ public class EmployeeService {
         }
 
         employeeRepository.delete(employee);
+        log.info("employee deleted id {} fullName {}", employee.getId(), employee.getFullName());
     }
 
     private Employee getById(Integer id) {

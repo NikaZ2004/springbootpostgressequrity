@@ -7,6 +7,8 @@ import com.example.springbootpostgressecurity.payload.response.ProjectResponse;
 import com.example.springbootpostgressecurity.repository.DepartmentRepository;
 import com.example.springbootpostgressecurity.repository.ProjectAssignmentRepository;
 import com.example.springbootpostgressecurity.repository.ProjectRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import java.util.List;
 
 @Service
 public class ProjectService {
+    private static final Logger log = LoggerFactory.getLogger(ProjectService.class);
+
     private final ProjectRepository projectRepository;
     private final DepartmentRepository departmentRepository;
     private final ProjectAssignmentRepository projectAssignmentRepository;
@@ -63,7 +67,9 @@ public class ProjectService {
         project.setDepartment(resolveDepartment(request.getDepartmentId()));
         project.setBudget(request.getBudget());
 
-        return ProjectResponse.from(projectRepository.save(project));
+        Project savedProject = projectRepository.save(project);
+        log.info("project saved id {} departmentId {}", savedProject.getId(), request.getDepartmentId());
+        return ProjectResponse.from(savedProject);
     }
 
     @Transactional
@@ -74,7 +80,9 @@ public class ProjectService {
         project.setDepartment(resolveDepartment(request.getDepartmentId()));
         project.setBudget(request.getBudget());
 
-        return ProjectResponse.from(projectRepository.save(project));
+        Project savedProject = projectRepository.save(project);
+        log.info("project updated id {} departmentId {}", savedProject.getId(), request.getDepartmentId());
+        return ProjectResponse.from(savedProject);
     }
 
     @Transactional
@@ -86,6 +94,7 @@ public class ProjectService {
         }
 
         projectRepository.delete(project);
+        log.info("project deleted id {} name {}", project.getId(), project.getName());
     }
 
     private Project getById(Integer id) {

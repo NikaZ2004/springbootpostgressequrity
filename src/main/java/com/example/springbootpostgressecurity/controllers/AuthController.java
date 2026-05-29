@@ -67,6 +67,7 @@ public class AuthController {
 
   @PostMapping({"/api/auth/signin", "/signin"})
   public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    log.info("user signin attempt username {}", loginRequest.getUsername());
     Authentication authentication = authenticationManager
         .authenticate(new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
@@ -86,16 +87,20 @@ public class AuthController {
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
     String username = signUpRequest.getUsername();
     String name = hasText(signUpRequest.getName()) ? signUpRequest.getName() : username;
+    log.info("user signup attempt username {} email {}", username, signUpRequest.getEmail());
 
     if (userRepository.existsByUsername(username)) {
+      log.warn("user signup rejected username already taken {}", username);
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Username is already taken!"));
     }
 
     if (userRepository.existsByEmail(signUpRequest.getEmail())) {
+      log.warn("user signup rejected email already in users {}", signUpRequest.getEmail());
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
     }
 
     if (userGameRepository.existsByEmail(signUpRequest.getEmail())) {
+      log.warn("user signup rejected email already in userGames {}", signUpRequest.getEmail());
       return ResponseEntity.badRequest().body(new MessageResponse("Error: Email is already in use!"));
     }
 
@@ -141,6 +146,8 @@ public class AuthController {
 
     user.setRoles(roles);
     userService.save(user);
+    log.info("user signup completed username {} email {} roles {}", username, signUpRequest.getEmail(),
+        roles.stream().map(role -> role.getName().name()).toList());
 
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
   }

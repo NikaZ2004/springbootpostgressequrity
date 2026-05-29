@@ -5,6 +5,8 @@ import com.example.springbootpostgressecurity.services.UserEventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +27,8 @@ import java.util.UUID;
 @RequestMapping("/api/clickhouse/user-events")
 @Tag(name = "UserEvent", description = "ClickHouse user event operations")
 public class UserEventController {
+    private static final Logger log = LoggerFactory.getLogger(UserEventController.class);
+
     private final UserEventService userEventService;
 
     public UserEventController(UserEventService userEventService) {
@@ -36,6 +40,7 @@ public class UserEventController {
     @Operation(summary = "Create ClickHouse user_events table if it does not exist")
     public ResponseEntity<Void> createTableIfNotExists() {
         userEventService.createTableIfNotExists();
+        log.info("userEvents schema created or already exists");
         return ResponseEntity.noContent().build();
     }
 
@@ -43,21 +48,28 @@ public class UserEventController {
     @PostMapping
     @Operation(summary = "Create user event in ClickHouse")
     public ResponseEntity<UserEvent> create(@Valid @RequestBody UserEvent request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userEventService.create(request));
+        UserEvent userEvent = userEventService.create(request);
+        log.info("userEvent create id {} userId {} eventType {}", userEvent.getId(), userEvent.getUserId(),
+                userEvent.getEventType());
+        return ResponseEntity.status(HttpStatus.CREATED).body(userEvent);
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping
     @Operation(summary = "Get latest user events from ClickHouse")
     public List<UserEvent> findAll(@RequestParam(required = false) Integer limit) {
-        return userEventService.findAll(limit);
+        List<UserEvent> events = userEventService.findAll(limit);
+        log.info("userEvents findAll limit {} count {}", limit, events.size());
+        return events;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id}")
     @Operation(summary = "Get user event by id from ClickHouse")
     public UserEvent findById(@PathVariable UUID id) {
-        return userEventService.findById(id);
+        UserEvent userEvent = userEventService.findById(id);
+        log.info("userEvent findById id {} userId {}", id, userEvent.getUserId());
+        return userEvent;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -66,6 +78,8 @@ public class UserEventController {
     public List<UserEvent> findByUserId(
             @RequestParam Long userId,
             @RequestParam(required = false) Integer limit) {
-        return userEventService.findByUserId(userId, limit);
+        List<UserEvent> events = userEventService.findByUserId(userId, limit);
+        log.info("userEvents findByUserId userId {} limit {} count {}", userId, limit, events.size());
+        return events;
     }
 }

@@ -2,6 +2,8 @@ package com.example.springbootpostgressecurity.services;
 
 import com.example.springbootpostgressecurity.models.clickhouse.UserEvent;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -16,6 +18,8 @@ import java.util.UUID;
 
 @Service
 public class UserEventService {
+    private static final Logger log = LoggerFactory.getLogger(UserEventService.class);
+
     private static final int DEFAULT_LIMIT = 100;
     private static final int MAX_LIMIT = 1000;
     private static final String SELECT_COLUMNS = """
@@ -49,6 +53,7 @@ public class UserEventService {
 
     public void createTableIfNotExists() {
         jdbcTemplate.execute(CREATE_TABLE_SQL);
+        log.info("userEvents table ensured");
     }
 
     public UserEvent create(UserEvent request) {
@@ -65,6 +70,8 @@ public class UserEventService {
                 Timestamp.from(userEvent.getEventTime()),
                 userEvent.getPayload());
 
+        log.info("userEvent inserted id {} userId {} eventType {}", userEvent.getId(), userEvent.getUserId(),
+                userEvent.getEventType());
         return userEvent;
     }
 

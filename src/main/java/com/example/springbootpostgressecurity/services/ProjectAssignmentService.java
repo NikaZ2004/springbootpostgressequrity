@@ -10,6 +10,8 @@ import com.example.springbootpostgressecurity.payload.response.ProjectAssignment
 import com.example.springbootpostgressecurity.repository.EmployeeRepository;
 import com.example.springbootpostgressecurity.repository.ProjectAssignmentRepository;
 import com.example.springbootpostgressecurity.repository.ProjectRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,8 @@ import java.util.List;
 
 @Service
 public class ProjectAssignmentService {
+    private static final Logger log = LoggerFactory.getLogger(ProjectAssignmentService.class);
+
     private final ProjectAssignmentRepository projectAssignmentRepository;
     private final EmployeeRepository employeeRepository;
     private final ProjectRepository projectRepository;
@@ -85,7 +89,10 @@ public class ProjectAssignmentService {
         assignment.setId(id);
         updateAssignment(assignment, request);
 
-        return ProjectAssignmentResponse.from(projectAssignmentRepository.save(assignment));
+        ProjectAssignment savedAssignment = projectAssignmentRepository.save(assignment);
+        log.info("projectAssignment saved id {} employeeId {} projectId {}", savedAssignment.getId(),
+                request.getEmployeeId(), request.getProjectId());
+        return ProjectAssignmentResponse.from(savedAssignment);
     }
 
     @Transactional
@@ -93,13 +100,17 @@ public class ProjectAssignmentService {
         ProjectAssignment assignment = getById(id);
         updateAssignment(assignment, request);
 
-        return ProjectAssignmentResponse.from(projectAssignmentRepository.save(assignment));
+        ProjectAssignment savedAssignment = projectAssignmentRepository.save(assignment);
+        log.info("projectAssignment updated id {} employeeId {} projectId {}", savedAssignment.getId(),
+                request.getEmployeeId(), request.getProjectId());
+        return ProjectAssignmentResponse.from(savedAssignment);
     }
 
     @Transactional
     public void delete(Integer id) {
         ProjectAssignment assignment = getById(id);
         projectAssignmentRepository.delete(assignment);
+        log.info("projectAssignment deleted id {}", assignment.getId());
     }
 
     private ProjectAssignment getById(Integer id) {

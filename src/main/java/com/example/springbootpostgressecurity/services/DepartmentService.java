@@ -7,6 +7,8 @@ import com.example.springbootpostgressecurity.payload.response.DepartmentRespons
 import com.example.springbootpostgressecurity.repository.DepartmentRepository;
 import com.example.springbootpostgressecurity.repository.EmployeeRepository;
 import com.example.springbootpostgressecurity.repository.ProjectRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import java.util.List;
 
 @Service
 public class DepartmentService {
+    private static final Logger log = LoggerFactory.getLogger(DepartmentService.class);
+
     private final DepartmentRepository departmentRepository;
     private final EmployeeRepository employeeRepository;
     private final ProjectRepository projectRepository;
@@ -64,7 +68,9 @@ public class DepartmentService {
         department.setId(id);
         department.setName(request.getName());
 
-        return DepartmentResponse.from(departmentRepository.save(department));
+        Department savedDepartment = departmentRepository.save(department);
+        log.info("department saved id {} name {}", savedDepartment.getId(), savedDepartment.getName());
+        return DepartmentResponse.from(savedDepartment);
     }
 
     @Transactional
@@ -79,7 +85,9 @@ public class DepartmentService {
 
         department.setName(request.getName());
 
-        return DepartmentResponse.from(departmentRepository.save(department));
+        Department savedDepartment = departmentRepository.save(department);
+        log.info("department updated id {} name {}", savedDepartment.getId(), savedDepartment.getName());
+        return DepartmentResponse.from(savedDepartment);
     }
 
     @Transactional
@@ -93,6 +101,7 @@ public class DepartmentService {
         }
 
         departmentRepository.delete(department);
+        log.info("department deleted id {} name {}", department.getId(), department.getName());
     }
 
     private Department getById(Integer id) {

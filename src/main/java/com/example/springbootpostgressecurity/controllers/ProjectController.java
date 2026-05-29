@@ -6,6 +6,8 @@ import com.example.springbootpostgressecurity.services.ProjectService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -27,6 +29,8 @@ import java.util.List;
 @RequestMapping("/api/projects")
 @Tag(name = "Project", description = "CRUD operations for projects")
 public class ProjectController {
+    private static final Logger log = LoggerFactory.getLogger(ProjectController.class);
+
     private final ProjectService projectService;
 
     public ProjectController(ProjectService projectService) {
@@ -37,35 +41,45 @@ public class ProjectController {
     @GetMapping
     @Operation(summary = "Get all projects")
     public List<ProjectResponse> findAll() {
-        return projectService.findAll();
+        List<ProjectResponse> projects = projectService.findAll();
+        log.info("projects findAll count {}", projects.size());
+        return projects;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id:\\d+}")
     @Operation(summary = "Get project by id")
     public ProjectResponse findById(@PathVariable Integer id) {
-        return projectService.findById(id);
+        ProjectResponse project = projectService.findById(id);
+        log.info("project findById id {}", id);
+        return project;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/by-department")
     @Operation(summary = "Get projects by department id")
     public List<ProjectResponse> findByDepartmentId(@RequestParam Integer departmentId) {
-        return projectService.findByDepartmentId(departmentId);
+        List<ProjectResponse> projects = projectService.findByDepartmentId(departmentId);
+        log.info("projects findByDepartmentId departmentId {} count {}", departmentId, projects.size());
+        return projects;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Create project")
     public ResponseEntity<ProjectResponse> create(@Valid @RequestBody ProjectRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.create(request));
+        ProjectResponse project = projectService.create(request);
+        log.info("project create id {}", project.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(project);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id:\\d+}")
     @Operation(summary = "Update project")
     public ProjectResponse update(@PathVariable Integer id, @Valid @RequestBody ProjectRequest request) {
-        return projectService.update(id, request);
+        ProjectResponse project = projectService.update(id, request);
+        log.info("project update id {}", id);
+        return project;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -73,6 +87,7 @@ public class ProjectController {
     @Operation(summary = "Delete project")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         projectService.delete(id);
+        log.info("project delete id {}", id);
         return ResponseEntity.noContent().build();
     }
 }
