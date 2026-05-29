@@ -8,6 +8,8 @@ import com.example.springbootpostgressecurity.services.EmployeeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,6 +31,8 @@ import java.util.List;
 @RequestMapping("/api/employees")
 @Tag(name = "Employee", description = "CRUD operations for employees")
 public class EmployeeController {
+    private static final Logger log = LoggerFactory.getLogger(EmployeeController.class);
+
     private final EmployeeService employeeService;
 
     public EmployeeController(EmployeeService employeeService) {
@@ -39,56 +43,72 @@ public class EmployeeController {
     @GetMapping
     @Operation(summary = "Get all employees")
     public List<EmployeeResponse> findAll() {
-        return employeeService.findAll();
+        List<EmployeeResponse> employees = employeeService.findAll();
+        log.info("employees findAll count {}", employees.size());
+        return employees;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/{id:\\d+}")
     @Operation(summary = "Get employee by id")
     public EmployeeResponse findById(@PathVariable Integer id) {
-        return employeeService.findById(id);
+        EmployeeResponse employee = employeeService.findById(id);
+        log.info("employee findById id {}", id);
+        return employee;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/by-department")
     @Operation(summary = "Get employees by department id")
     public List<EmployeeResponse> findByDepartmentId(@RequestParam Integer departmentId) {
-        return employeeService.findByDepartmentId(departmentId);
+        List<EmployeeResponse> employees = employeeService.findByDepartmentId(departmentId);
+        log.info("employees findByDepartmentId departmentId {} count {}", departmentId, employees.size());
+        return employees;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/sql/window-salary-rank")
     @Operation(summary = "Get employee salary rank by department using native SQL window functions")
     public List<EmployeeSalaryWindowResponse> findSalaryWindowsWithNativeSql() {
-        return employeeService.findSalaryWindowsWithNativeSql();
+        List<EmployeeSalaryWindowResponse> employees = employeeService.findSalaryWindowsWithNativeSql();
+        log.info("employees salaryWindows nativeSql count {}", employees.size());
+        return employees;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/jpql/window-salary-rank")
     @Operation(summary = "Get employee salary rank by department using JPQL/HQL window functions")
     public List<EmployeeSalaryWindowResponse> findSalaryWindowsWithJpql() {
-        return employeeService.findSalaryWindowsWithJpql();
+        List<EmployeeSalaryWindowResponse> employees = employeeService.findSalaryWindowsWithJpql();
+        log.info("employees salaryWindows jpql count {}", employees.size());
+        return employees;
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/jpa/subquery/salary-above-department-average")
     @Operation(summary = "Get employees with salary above department average using JPA subquery")
     public List<EmployeeDepartmentAverageResponse> findEmployeesWithSalaryAboveDepartmentAverage() {
-        return employeeService.findEmployeesWithSalaryAboveDepartmentAverage();
+        List<EmployeeDepartmentAverageResponse> employees = employeeService.findEmployeesWithSalaryAboveDepartmentAverage();
+        log.info("employees salaryAboveDepartmentAverage count {}", employees.size());
+        return employees;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     @Operation(summary = "Create employee")
     public ResponseEntity<EmployeeResponse> create(@Valid @RequestBody EmployeeRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(employeeService.create(request));
+        EmployeeResponse employee = employeeService.create(request);
+        log.info("employee create id {}", employee.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(employee);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id:\\d+}")
     @Operation(summary = "Update employee")
     public EmployeeResponse update(@PathVariable Integer id, @Valid @RequestBody EmployeeRequest request) {
-        return employeeService.update(id, request);
+        EmployeeResponse employee = employeeService.update(id, request);
+        log.info("employee update id {}", id);
+        return employee;
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -96,6 +116,7 @@ public class EmployeeController {
     @Operation(summary = "Delete employee")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         employeeService.delete(id);
+        log.info("employee delete id {}", id);
         return ResponseEntity.noContent().build();
     }
 }
